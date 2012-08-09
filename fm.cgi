@@ -24,7 +24,7 @@
 # 
 # Use the same XSLT stylesheets designed for FileMaker XSLT API without changes
 # To setup the replacement in FM12 and later, do one of the follwing options:
-#	A. Add "adapter=adapter_filer.xsl" to the usual query string used before
+#	A. Add "adapter=your_stilesheet_file.xsl" to the usual query string used before
 #	B. Setup a redirect in the HTTP server to the gateway fm.cgi
 #	
 #	Accept POST, GET, HEAD
