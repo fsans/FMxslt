@@ -33,7 +33,7 @@ Fill the config.xml file (open the default file provided to see details).
 
 To setup the replacement in FM12 and later, do one of the follwing options: 
 
-	A. Add  teh key=value pair "adapter=adapter_filer.xsl" to the usual query string used before.
+	A. Add  the key=value pair "adapter=adapter_filer.xsl" to the usual query string used before.
 	B. Setup a redirect in the HTTP server from "/fmi/xsl/ to the gateway /fm.cgi. This will catch all your old xslt queries and pass it to the new CGI.
 	
 Accepts POST, GET or HEAD http requests 
