@@ -40,14 +40,11 @@ use XML::LibXSLT;
 use XML::LibXML;
 use File::Path;
 use Data::Dumper;
-
+use XML::Parser;
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
 
-# must debug
-# use strict;
-
-# Must be used in test mode only. This reduce a little process speed
+use strict;
 use warnings;
 
 #! Always use full paths if this script has to be launched from launchd or cron
@@ -70,14 +67,6 @@ my $password = $data->{password};
 my $port = $data->{port};
 my $database = $data->{database};
 my $debug = $data->{debug};
-my $md5user = $data->{md5user};
-my $md5password = $data->{md5password};
-
-
-#! #####################################################
-
-
-
 
 
 
@@ -89,31 +78,48 @@ my $endpoint = $protocol . $host . ":" . $port . "/" . $fmcgi;
 #! array of name=value pairs 
 my @qarray; 
 
+
+#! #####################################################
 #! array of tokens to inhject as parameters to the adapter
 my %Tokens;
-#my $requestQueryObject = new XML::Simple();
 
+my %EmbededParams;
 
+# fmp namespace definition
+my $fmqNamespace = "http://www.filemaker.com/xml/query";
+my $fmqNamespaceAlias = "fmq";
 
+# create the request-query object
+my $requestQueryObject = XML::LibXML::Document->new( '1.0', 'UTF-8' );
+
+my $queryObjectBody = $requestQueryObject->createElement( 'query' );
+$requestQueryObject->setDocumentElement( $queryObjectBody );
+$queryObjectBody->setNamespace( $fmqNamespace , $fmqNamespaceAlias, 0 );
+# to add more namespaces: (1 adds alias)
+# $queryObjectBody->setNamespace( 'http://www.w3.org/bla' , 'bla', 1 );
 
 
 #! post query string values
 my $qstring;
 
 
+#! #####################################################
+# setup headers
+print "content-type:text/xml;charset=utf-8\n\n" ;
+
+
 
 
 #! #####################################################
-
 #! params:
 #! uri -> endpoint url
 #! query -> name value pairs string
 #
 sub getDataFromDatabase
 {
-	local($uri,$query,$ua,$req);
-	$uri  = $_[0];
-	$query = $_[1];
+	my ($ua,$req);
+	my $uri  = $_[0];
+	my $query = $_[1];
 	
 	#&print_log("uri: $uri\n");
 	#&print_log("query: $query\n");
@@ -131,7 +137,6 @@ sub getDataFromDatabase
 
 
 #! #####################################################
-
 #! params:
 #! sourceFile -> file to read
 #! returs readed file stream
@@ -139,10 +144,10 @@ sub getDataFromDatabase
 sub readAdapter
 {
 	
-	local($sourceFile, $sourceData);
-	$sourceFile  = $_[0];
+	my $sourceData;
+	my $sourceFile  = $_[0];
 	
-	open FILE, $sourceFile or die "Couldn't open file: $!"; 
+	open FILE, $rootdirectory.$sourceFile or die "Couldn't open file: $!"; 
 	while (<FILE>){
 	 $sourceData .= $_;
 	}
@@ -156,7 +161,7 @@ sub readAdapter
 #! Read all CGI vars into an associative array.
 sub getcgivars 
 {
-    local($QueryString, @NameValuePairs,%Vars) ;
+    my ($QueryString,@NameValuePairs,%Vars);
 
     #! read entire string of CGI vars into $in
 	#! Whether the method used is GET or POST, store the parameters passed in $QueryString
@@ -175,6 +180,8 @@ sub getcgivars
 	#! get the character equivalent of any data in hex (%XX) and finally, 
 	#! store it in an associative array
 
+	my ($NameValue,$Name,$Value);
+	
 	foreach $NameValue (@NameValuePairs) {
 		($Name, $Value) = split (/=/, $NameValue);
 		if($Value){
@@ -190,11 +197,10 @@ sub getcgivars
 
 #! #####################################################
 
-
 sub buildQueryString 
 {
-	local($vars, $str, @array);
-	%vars  = @_;
+	my ($str,@array,$val);
+	my %vars  = @_;
 	
 	foreach (keys %vars) 
 	{
@@ -209,12 +215,12 @@ sub buildQueryString
 	return join("&",@array);
 }
 #! #####################################################
-
 #! Die, outputting HTML error page
 #! If no $title, use a default title
+
 sub HTMLdie 
 {
-    local($msg,$title)= @_ ;
+	my ($msg,$title)= @_ ;
     $title= "CGI Error" if $title eq '' ;
     print <<EOF ;
 Content-type: text/html
@@ -258,20 +264,20 @@ sub rtrim($)
 
 #! #####################################################
 
-print "Content-type: text/xml\n\n" ;
+##print "Content-type: text/xml\n\n" ;
 
 #! get the CGI variables into a list of strings
-%cgivars = &getcgivars;
+my %cgivars = &getcgivars;
 
 
 #! #####################################################
 #! extract tokens & inject in the request-query object
 
 my $tokenPrefix = "-token.";
-
+my ($param,$tokenName,$tokenValue);
 foreach (keys %cgivars)
 {
-	$tokenName = "$_";
+	$tokenName = $_;
 	$tokenValue = $cgivars{$_};
 	
 	
@@ -280,68 +286,140 @@ foreach (keys %cgivars)
 		#| add to tokens hash
 		$Tokens{$tokenName} = $tokenValue;
 		
-		&print_log("token: $tokenName = $tokenValue");
+		#&print_log("token: $tokenName = $tokenValue");
 		
 		#| remove from cgivars hash
 		delete $cgivars{$tokenName};
+		
+		
+		#!  ADD TOKENS TO request-query param objet (to be passed to the xslt later)
+		#<xsl:param name="request-query" />
+		# ... <xsl:value-of select="$request-query/fmq:query/fmq:parameter[@name='-token.xyz']"/>
+		
+		$param = $requestQueryObject->createElement('param');
+		$param->setAttribute( 'name', $tokenName);
+		$param->appendTextNode($tokenValue);
+		$queryObjectBody->appendChild($param);
+		
+		#&print_log($param->toString(1));
+		
 	}
 	
 }
 
-#!  ADD TOKENS TO request-query param objet (to be passed to the xslt later)
-#<xsl:param name="request-query" />
-# ... <xsl:value-of select="$request-query/fmq:query/fmq:parameter[@name='-token.xyz']"/>
-
+#&print_log("#####################################################");
+#&print_log($requestQueryObject->toString(1));
 
 
 #| #####################################################
 #| read the XSLT file
 
-#print "Value is DEFINED, but may be false.\n" if defined $cgivars{ 'adapter' };
 my $adapterName = $cgivars{'adapter'};
-
-&print_log("adapter: $adapterName");
+#&print_log("adapter: $adapterName");
 
 #! remove the adapter from the hash
 delete $cgivars{'adapter'};
 
 
+my $xp = new XML::Parser();
+$xp->setHandlers(Proc => \&pih);
+$xp->parsefile($adapterName);
 
-#my $adapterData = &readAdapter($adapterName);
+my $xmldata = $xml->XMLin($adapterName);
 
-#! &print_log("ADAPTER content: $adapterData\n");
+#&print_log(Dumper($data));
 
+#! extract process instructions and add to the qarray
+sub pih() {
+	# extract data 
+	my($paramData,@pairs,$pName, $pValue);
+	my ($PIparser, $PItarget, $PIdata) = @_;
 
-#! #####################################################
-#! extract process instructions and add to the aqrray
+	if (lc($PItarget) eq "xslt-cwp-query") 
+	{ 
+		$paramData = substr ($PIdata,index($PIdata,"=")+1 );
+		#remove surrounding quotes
+		$paramData =~ tr/"//d;
+		#&print_log( "CWP-QUERY: " . $paramData );
+		
+		@pairs = split(/&/,$paramData);
 
-
-
-#&print_log("ENDPOINT: $endpoint\n");
+		foreach my $v (@pairs) {
+			($pName, $pValue) = split (/=/, $v);
+			
+			#! add new name value pair to the hash
+			$EmbededParams{$pName} = $pValue;
+			
+			#&print_log( $pName. " -> " .  $pValue );
+			
+			#| add to tokens hash
+			$cgivars{$pName} = $pValue;
+		}	
+	} 
+}
 
 
 #! #####################################################
 #! concatenate name value pairs into a string
 
 $qstring = &buildQueryString(%cgivars);
-&print_log( $qstring );
+#&print_log( $qstring );
+
 
 
 #! #####################################################
-#! send query and get reply XML data
-
-my $tempdata = getDataFromDatabase($endpoint,$qstring );
-
-
-&print_log($tempdata);
-
-
-#! #####################################################
-#! process xml with the xslt adapter
+# load xml from database query
+my $parser = XML::LibXML->new();
+my $xmlsource = $parser->load_xml( location => $endpoint.'?'.$qstring );
+#&print_log($xmlsource->toString());
 
 
 
+# load xslt stylesheet & parse it
+my $style_doc = $parser->parse_file( $adapterName );
 
+#&print_log($style_doc->toString());
+
+my $xslt = XML::LibXSLT->new();
+my $stylesheet = $xslt->parse_stylesheet($style_doc);
+
+&print_log($stylesheet->toString());
+
+# inject stylesheet parameters
+# (set up the request-query object)
+
+# ###### method 2: edit the 'request-query' prebuilt parameter, add child nodes...
+
+# select <xsl:param name="request-query" />
+my $targetNode = $style_doc->findnodes('*/param/@name="request-query"');
+
+&print_log($targetNode);
+
+my $queryNode = $style_doc->createElement( 'query' );
+
+$style_doc->setDocumentElement( $queryNode );
+
+$queryNode->setNamespace( $fmqNamespace , $fmqNamespaceAlias, 0 );
+
+$targetNode->appendChild($queryNode);
+
+
+#&print_log($style_doc->toString());
+
+
+
+
+
+# transform
+#my $results = $stylesheet->transform($xmlsource,@stylesheetParams);
+my $results = $stylesheet->transform($xmlsource);
+
+
+#&print_log($results->toString());
+
+#print $results->toString();
 
 
 ;
+
+
