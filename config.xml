@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<services>
+	
+	
+	<protocol>http://</protocol>
+	
+	<host>127.0.0.1</host>
+	
+	<port>80</port>
+	
+	<!-- NO LEADING SLASHES PLEASE-->
+	<fmcgi>fmi/xml/fmresultset.xml</fmcgi>
+	
+	<database>FMW</database>
+	
+	<user>username</user>
+	
+	<password>verysecret</password>
+	
+	<!-- EXPERIMENTAL-->
+	<md5user>username</md5user>
+	
+	<!-- EXPERIMENTAL-->
+	<md5password>verysecret</md5password>
+	
+	
+	<!-- debug = 0 to lock output info -->
+	<debug>1</debug>
+</services>
