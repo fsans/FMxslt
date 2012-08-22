@@ -32,17 +32,10 @@ Use the same XSLT stylesheets designed for FileMaker XSLT API without changes.
 Fill the config.xml file (open the default file provided to see details). 
  
 To setup the replacement in FM12 and later, do one of the follwing options: 
-<<<<<<< HEAD
 
 	A. Add  the key=value pair "adapter=your_stilesheet_file.xsl" to the usual query string used before.
-	B. Setup a redirect in the HTTP server from "/fmi/xsl/ to the gateway /fm.cgi. This will catch all your old xslt queries and pass it to the new CGI.
+	B. Setup a redirect in the HTTP server from "/fmi/xsl/" to the gateway fm.cgi. This will catch all your old xslt queries and pass it to the new CGI.
 	
-=======
- 
-	A. Add  the key=value pair "adapter=adapter_filer.xsl" to the usual query string used before.
-	B. Setup a redirect in the HTTP server from "/fmi/xsl/ to the gateway /fm.cgi. This will catch all your old xslt queries and pass it to the new CGI. 
- 
->>>>>>> minor updates
 Accepts POST, GET or HEAD http requests 
 
  ------------------------------------------------------------------------------
