@@ -18,10 +18,10 @@
 	<password>verysecret</password>
 	
 	<!-- EXPERIMENTAL-->
-	<md5user>username</md5user>
+	<md5user></md5user>
 	
 	<!-- EXPERIMENTAL-->
-	<md5password>verysecret</md5password>
+	<md5password></md5password>
 	
 	
 	<!-- debug = 0 to lock output info -->

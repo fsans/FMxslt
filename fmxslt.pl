@@ -23,14 +23,20 @@
 # Transparently replace FileMaker pre v12 XSLT API
 # 
 # Use the same XSLT stylesheets designed for FileMaker XSLT API without changes
+# 
 # To setup the replacement in FM12 and later, do one of the follwing options:
+<<<<<<< HEAD:fm.cgi
 #	A. Add "adapter=your_stilesheet_file.xsl" to the usual query string used before
 #	B. Setup a redirect in the HTTP server to the gateway fm.cgi
+=======
+#	A. Add "adapter=adapter_filer.xsl" to the usual query string used before
+#	B. Setup a redirect in the HTTP server from "fmi/xsl/*" to the gateway fmxslt.cgi
+>>>>>>> minor updates:fmxslt.pl
 #	
-#	Accept POST, GET, HEAD
+# Accept POST, GET, HEAD
 #	
 ##------------------------------------------------------------------------------
-# $ Revision: 0.1.026 $ - $Author: Francesc Sans fsans@ntwk.es $ - $Date: 2012/01/01 00:00:00 $
+# $ Revision: 0.1.032 $ - $Author: Francesc Sans fsans@ntwk.es $ - $Date: 2012/08/22 00:00:00 $
 ##------------------------------------------------------------------------------
 #
 #
